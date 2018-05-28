@@ -1,3 +1,19 @@
 <resources>
     <string name="app_name">Мои карты</string>
+    <string name="tv_list_card_name">Название карты</string>
+    <string name="df_long_name">Выберите действие</string>
+    <string name="df_delete_name">Удалить карту?</string>
+    <string name="df_delete_button_positive">Удалить</string>
+    <string name="df_delete_button_hegative">Отмена</string>
+    <string name="menu_sort">Сортировка</string>
+    <string name="detailed_save">Сохранить</string>
+    <string name="detailed_name">Название карты</string>
+    <string name="detailed_edit_name">Введите название</string>
+    <string name="detailed_number">Номер карты</string>
+    <string name="detailed_btn_scsn_text">Считать код</string>
+    <string name="detailed_text_foto1">Фото лицевой стороны</string>
+    <string name="detailed_text_foto2">Фото обратной стороны</string>
+    <string name="detailed_create_foto1">Сделать фото лицевой стороны</string>
+    <string name="detailed_create_foto2">Сделать фото обратной стороны</string>
+    <string name="detailed_comment">Примечание</string>
 </resources>

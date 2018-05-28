@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="long_menu_items">
+        <item>Редактировать</item>
+        <item>Удалить</item>
+    </string-array>
+    <string-array name="sort_menu_items">
+        <item>По алфавиту</item>
+        <item>По дате ввода</item>
+    </string-array>
+</resources>
