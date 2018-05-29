@@ -23,13 +23,16 @@ public class ListCardPresenterImpl implements ListCardPresenter {
     @Override
     public void updateUI() {
         CardsItems cardsItems = CardsItems.get(mListCardFragment.getActivity());
-        List<Card> cards = cardsItems.getCards();
+        List<Card> cards = cardsItems.getCards(idsort);
         mListCardFragment.updateUI(cards);
     }
 
     @Override
     public void OnItemClick(UUID id) {
         this.mId = id;
+        CardsItems cardsItems = CardsItems.get(mListCardFragment.getActivity());
+        String barc = cardsItems.getCard(mId).getBarCode();
+        mListCardFragment.showBarCode(barc, mId.toString());
     }
 
     @Override
@@ -39,16 +42,12 @@ public class ListCardPresenterImpl implements ListCardPresenter {
     }
 
     public UUID getId() {
-        Log.d("Test", "getId" + mId.toString());
         return mId;
-
     }
 
     public void setId(UUID mId) {
         this.mId = mId;
-        Log.d("Test", "setId" + mId.toString());
     }
-
 
     @Override
     public void selectedItemLongMenu(int which) {
@@ -64,8 +63,9 @@ public class ListCardPresenterImpl implements ListCardPresenter {
 
     @Override
     public void selectedItemDelete() {
-        //TODO удаление элемента
-        Log.d("Test", "selectedItemDelete" + mId.toString());
+        CardsItems cardsItems = CardsItems.get(mListCardFragment.getActivity());
+        cardsItems.deleteCard(mId.toString());
+        updateUI();
     }
 
     @Override
@@ -76,14 +76,12 @@ public class ListCardPresenterImpl implements ListCardPresenter {
     @Override
     public void selectedMenuSorted(int id) {
         idsort = id;
-        Log.d("Test", "selectedMenuSorted " + idsort);
-        //TODO Сортировать, обновить список
+        updateUI();
     }
 
     @Override
     public void clickFab() {
         mListCardFragment.showCardDetailed("");
-        Log.d("Test", "clickFab createnew card ");
     }
 
 }

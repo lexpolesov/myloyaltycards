@@ -1,7 +1,17 @@
 package ru.polesov.myloyaltycards.fragments;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.content.FileProvider;
+import android.support.v7.graphics.Palette;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,9 +20,17 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.google.android.gms.vision.barcode.Barcode;
+
+import java.io.File;
+import java.util.Date;
+import java.util.List;
 
 import ru.polesov.myloyaltycards.model.Card;
 import ru.polesov.myloyaltycards.R;
+import ru.polesov.myloyaltycards.other.ImageUtils;
 import ru.polesov.myloyaltycards.presenters.CardPresenter;
 import ru.polesov.myloyaltycards.presenters.CardPresenterImpl;
 
@@ -24,11 +42,21 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
     public  EditText mCode;
     private EditText mComment;
     private Button mBtnReadCode;
-    private Button mBtnFoto1;
-    private Button mBtnFoto2;
+    private Button mBtnFace;
+    private Button mBtnBack;
     private Button mBtnSave;
-    private ImageView mImageViewFoto1;
-    private ImageView mImageViewFoto2;
+    private ImageView mImageViewFace;
+    private ImageView mImageViewBack;
+    private static final int REQUEST_DIALOG_BARCODE = 1;
+    private static final int REQUEST_PHOTO_FACE= 2;
+    private static final int REQUEST_PHOTO_BACK= 3;
+    private String barcodenumber;
+    private boolean barcodeCheck;
+    private File mFaceFile;
+    private File mBackFile;
+    private int colorFace = 0;
+
+    final Intent captureImage = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
 
     public static CardFragmentImpl newInstance(String id) {
         CardFragmentImpl cartFragment = new CardFragmentImpl();
@@ -39,7 +67,6 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
     }
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        String someString = getArguments().getString("UUID", "");
         setRetainInstance(true);
 
     }
@@ -48,25 +75,43 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
         View v = inflater.inflate(R.layout.card_detailed, container, false);
         String id = getArguments().getString("UUID", "");
         if (mCardPresenter == null)
-            mCardPresenter = new CardPresenterImpl(this);
-
+            mCardPresenter = new CardPresenterImpl(this, id);
         mName = (EditText)v.findViewById(R.id.detailed_edit_name);
         mCode = (EditText)v.findViewById(R.id.detailed_edit_number);
         mComment = (EditText)v.findViewById(R.id.detailed_edit_comment);
         mBtnReadCode = (Button)v.findViewById(R.id.detailed_btn_scancode);
         mBtnReadCode.setOnClickListener(this);
-        mBtnFoto1 = (Button)v.findViewById(R.id.btn_create_foto1);
-        mBtnFoto1.setOnClickListener(this);
-        mBtnFoto2 = (Button)v.findViewById(R.id.btn_create_foto2);
-        mBtnFoto2.setOnClickListener(this);
+        mBtnFace = (Button)v.findViewById(R.id.btn_create_foto1);
+        mBtnFace.setOnClickListener(this);
+        mBtnBack = (Button)v.findViewById(R.id.btn_create_foto2);
+        mBtnBack.setOnClickListener(this);
         mBtnSave = (Button)v.findViewById(R.id.save_card);
         mBtnSave.setOnClickListener(this);
-        mImageViewFoto1 = (ImageView)v.findViewById(R.id.imageView_foto1);
-        mImageViewFoto1.setOnClickListener(this);
-        mImageViewFoto2 = (ImageView)v.findViewById(R.id.imageView_foto2);
-        mImageViewFoto2.setOnClickListener(this);
-        mCardPresenter.setId(id);
+        mImageViewFace = (ImageView)v.findViewById(R.id.imageView_foto1);
+        mImageViewBack = (ImageView)v.findViewById(R.id.imageView_foto2);
+        mFaceFile = mCardPresenter.getFacePhotoFile();
+        mBackFile = mCardPresenter.getBackPhotoFile();
+        final Intent captureImage = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        boolean canTakePhoto = mFaceFile != null && mBackFile != null &&
+                captureImage.resolveActivity(getActivity().getPackageManager()) != null;
+        mBtnFace.setEnabled(canTakePhoto);
+        mBtnBack.setEnabled(canTakePhoto);
+        Card cd = mCardPresenter.getCard();
+        colorFace = cd.getColor();
+        setName(cd.getTitle());
+        setCode(cd.getBarCode());
+        setComment(cd.getComment());
+        updatePhotoView();
         return v;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (barcodeCheck){
+            setCode(barcodenumber);
+            barcodeCheck = false;
+        }
     }
 
     @Override
@@ -82,15 +127,32 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
                 mCardPresenter.clickCreateFoto2();
                 break;
             case R.id.save_card:
-                mCardPresenter.clickSave();
-                break;
-            case R.id.imageView_foto1:
-                mCardPresenter.clickViewFoto1();
-                break;
-            case R.id.imageView_foto2:
-                mCardPresenter.clickViewFoto2();
+                btnSave();
                 break;
         }
+    }
+
+    private void btnSave(){
+        if (mName.getText().length() == 0) {
+            Toast.makeText(this.getContext(), "Введите название", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (mCode.getText().length() == 0) {
+            Toast.makeText(this.getContext(), "Введите/Сканируйте код", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if ((mFaceFile == null || !mFaceFile.exists())) {
+            Toast.makeText(this.getContext(), "Сделайте фото лицевой стороны", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Card card = mCardPresenter.getCard();
+        if(colorFace !=0)
+            card.setColor(colorFace);
+        card.setTitle(mName.getText().toString());
+        card.setBarCode(mCode.getText().toString());
+        card.setComment(mComment.getText().toString());
+        card.setDate(new Date());
+        mCardPresenter.clickSave(card);
     }
 
     @Override
@@ -101,11 +163,105 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
     @Override
     public void setCode(String code) {
        mCode.setText(code);
+        Log.d("Test", "setBarcode" +  code);
 
     }
 
     @Override
     public void setComment(String comment) {
         mComment.setText(comment);
+    }
+
+    @Override
+    public void showBarcodeView() {
+        FragmentManager fm = getActivity().getSupportFragmentManager();
+        Fragment barcodefragment = new BarcodeFragmentImpl();
+        barcodefragment.setTargetFragment(CardFragmentImpl.this,REQUEST_DIALOG_BARCODE);
+        fm.beginTransaction().replace(R.id.fragment_container, barcodefragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
+    @Override
+    public void showFotoView(int FaceOrBack) {
+        Uri uri;
+        if (FaceOrBack == 0)
+            uri = FileProvider.getUriForFile(getActivity(),
+                    "ru.polesov.myloyaltycards.fileprovider",
+                    mFaceFile);
+        else
+            uri = FileProvider.getUriForFile(getActivity(),
+                    "ru.polesov.myloyaltycards.fileprovider",
+                    mBackFile);
+        captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+        List<ResolveInfo> cameraActivities = getActivity()
+                .getPackageManager().queryIntentActivities(captureImage,
+                        PackageManager.MATCH_DEFAULT_ONLY);
+        for (ResolveInfo activity : cameraActivities) {
+            getActivity().grantUriPermission(activity.activityInfo.packageName,
+                    uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        }
+        if (FaceOrBack == 0)
+            startActivityForResult(captureImage, REQUEST_PHOTO_FACE);
+        else
+            startActivityForResult(captureImage, REQUEST_PHOTO_BACK);
+    }
+
+    @Override
+    public void finish() {
+        getActivity().getSupportFragmentManager().popBackStack();
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode != Activity.RESULT_OK) {
+            return;
+        }
+        switch (requestCode){
+            case REQUEST_DIALOG_BARCODE:
+                if(data != null) {
+                   final Barcode barcode = data.getParcelableExtra(BarcodeFragmentImpl.EXTRA_BARCODE);
+                   barcodeCheck = true;
+                   barcodenumber = barcode.displayValue;
+                }
+                break;
+            case REQUEST_PHOTO_FACE:
+                Uri uri = FileProvider.getUriForFile(getActivity(),
+                        "ru.polesov.myloyaltycards.fileprovider",
+                        mFaceFile);
+                getActivity().revokeUriPermission(uri,
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                Bitmap bitmap = ImageUtils.getScaledBitmap(
+                        mFaceFile.getPath(), getActivity());
+                if (bitmap != null && !bitmap.isRecycled()) {
+                    Palette palette = Palette.from(bitmap).generate();
+                    colorFace = palette.getDominantColor(0);
+                }
+                updatePhotoView();
+                break;
+            case REQUEST_PHOTO_BACK:
+                Uri uri1 = FileProvider.getUriForFile(getActivity(),
+                        "ru.polesov.myloyaltycards.fileprovider",
+                        mBackFile);
+                getActivity().revokeUriPermission(uri1,
+                        Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                updatePhotoView();
+                break;
+        }
+    }
+    private void updatePhotoView(){
+        if (mFaceFile == null || !mFaceFile.exists()) {
+            mImageViewFace.setImageResource(R.drawable.ic_menu_camera);
+        } else {
+            Bitmap bitmap = ImageUtils.getScaledBitmap(
+                    mFaceFile.getPath(), getActivity());
+            mImageViewFace.setImageBitmap(bitmap);
+        }
+        if (mBackFile == null || !mBackFile.exists()) {
+            mImageViewBack.setImageResource(R.drawable.ic_menu_camera);
+        } else {
+            Bitmap bitmap = ImageUtils.getScaledBitmap(
+                    mBackFile.getPath(), getActivity());
+            mImageViewBack.setImageBitmap(bitmap);
+        }
     }
 }

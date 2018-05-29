@@ -9,15 +9,24 @@ public class Card {
     private String mTitle;
     private Date mDate;
     private String mComment;
-    private String mNumberCard;
-    // TODO
-    //Фото лицевой стороны
-    //Фото задней стороны
-    //Цвет
+    private String mBarCode;
+    private int mColor;
 
     public Card() {
-        mID = UUID.randomUUID();
+        this(UUID.randomUUID());
+    }
+
+    public Card(UUID id) {
+        mID = id;
         mDate = new Date();
+    }
+
+    public int getColor() {
+        return mColor;
+    }
+
+    public void setColor(int mColor) {
+        this.mColor = mColor;
     }
 
     public String getTitle() {
@@ -44,15 +53,23 @@ public class Card {
         this.mComment = mComment;
     }
 
-    public String getmNumberCard() {
-        return mNumberCard;
+    public String getBarCode() {
+        return mBarCode;
     }
 
-    public void setNumberCard(String mNumberCard) {
-        this.mNumberCard = mNumberCard;
+    public void setBarCode(String mNumberCard) {
+        this.mBarCode = mNumberCard;
     }
 
     public UUID getID() {
         return mID;
     }
+
+    public String getFacePhotoFilename(){
+        return "IMG_" + getID().toString() + ".jpg";
+    }
+    public String getBackPhotoFilename(){
+        return "IMG_" + getID().toString() + "_2.jpg";
+    }
+
 }

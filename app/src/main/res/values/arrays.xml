@@ -5,7 +5,7 @@
         <item>Удалить</item>
     </string-array>
     <string-array name="sort_menu_items">
+        <item>По дате</item>
         <item>По алфавиту</item>
-        <item>По дате ввода</item>
     </string-array>
 </resources>

@@ -13,6 +13,5 @@ public interface ListCardFragment {
     public void showDialogCardDelete();
     public void showCardDetailed(String id);
     public void showDialogSort(int idsort);
-
-
+    public void showBarCode(String str,String id);
 }

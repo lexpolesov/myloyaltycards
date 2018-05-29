@@ -16,4 +16,9 @@
     <string name="detailed_create_foto1">Сделать фото лицевой стороны</string>
     <string name="detailed_create_foto2">Сделать фото обратной стороны</string>
     <string name="detailed_comment">Примечание</string>
+    <string name="barcode_fragment">Наведите камеру на штрих код. Распознается автоматически</string>
+    <string name="error_detector_barcode">Ошибка. Сканер не доступен.</string>
+    <string name="barcode_fragment_focus">Дождитесь автоматической фокусировки</string>
+    <string name="buttonpreview">Детальная информация</string>
+    <string name="textview_pr" />
 </resources>

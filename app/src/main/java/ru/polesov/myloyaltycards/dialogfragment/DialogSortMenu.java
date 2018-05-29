@@ -20,9 +20,7 @@ public class DialogSortMenu extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         int id = getArguments().getInt(ARG_ID, 0);
         AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-        builder.setTitle("Выберите любимое имя кота")
-                // добавляем переключатели
-                .setSingleChoiceItems(R.array.sort_menu_items, id,
+        builder.setTitle("Сортировка").setSingleChoiceItems(R.array.sort_menu_items, id,
                         new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int item) {

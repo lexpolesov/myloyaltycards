@@ -7,4 +7,7 @@ public interface CardFragment {
     public void setName(String name);
     public void setCode(String code);
     public void setComment(String comment);
+    public void showBarcodeView();
+    public void showFotoView(int FaceOrBack);
+    public void finish();
 }

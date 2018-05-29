@@ -8,6 +8,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -98,9 +99,28 @@ public class ListCardFragmentImpl extends Fragment implements ListCardFragment {
     }
 
     @Override
+    public void onStart() {
+        super.onStart();
+        mListCardPresenter.updateUI();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mListCardPresenter.updateUI();
+    }
+
+    @Override
     public void updateUI(List<Card> cards) {
-        mAdapter = new AdapterListCard(cards);
-        mListRecyclerView.setAdapter(mAdapter);
+        if (mAdapter == null) {
+            mAdapter = new AdapterListCard(cards);
+            mListRecyclerView.setAdapter(mAdapter);
+        }
+        else {
+            mAdapter.setCards(cards);
+            mListRecyclerView.setAdapter(mAdapter);
+            mAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -126,7 +146,6 @@ public class ListCardFragmentImpl extends Fragment implements ListCardFragment {
         fm.beginTransaction().replace(R.id.fragment_container, fragment2)
                 .addToBackStack(null)
                 .commit();
-
     }
 
     @Override
@@ -137,6 +156,14 @@ public class ListCardFragmentImpl extends Fragment implements ListCardFragment {
         dialogSort.show(manager, DIALOG_SORT);
     }
 
+    @Override
+    public void showBarCode(String str, String id) {
+        FragmentManager fm = getActivity().getSupportFragmentManager();
+        PreviewFragment fragment2 = PreviewFragment.newInstance(str, id);
+        fm.beginTransaction().replace(R.id.fragment_container, fragment2)
+                .addToBackStack(null)
+                .commit();
+    }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {

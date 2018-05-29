@@ -3,6 +3,7 @@ package ru.polesov.myloyaltycards.RecycleAdapter;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -31,7 +32,7 @@ public class AdapterListCard extends RecyclerView.Adapter<AdapterListCard.CardHo
         public void setDataCard(Card card){
             mCard = card;
             mTitleTextView.setText(mCard.getTitle());
-            mCardView.setCardBackgroundColor(-150);
+            mCardView.setCardBackgroundColor(card.getColor());
         }
 
         public Card getCard() {
@@ -59,4 +60,8 @@ public class AdapterListCard extends RecyclerView.Adapter<AdapterListCard.CardHo
         return mCards.size();
     }
 
+    public void setCards(List<Card> c) {
+        this.mCards = c;
+        Log.d("Test", "setCards " + this.mCards.size());
+    }
 }
