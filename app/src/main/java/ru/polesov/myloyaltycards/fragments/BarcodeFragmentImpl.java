@@ -64,7 +64,9 @@ public class BarcodeFragmentImpl extends Fragment {
             public void surfaceCreated(SurfaceHolder holder) {
                 try{
                     if(ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED){
+                        Log.d("Test", "camera barcode");
                         cameraSource.start(cameraView.getHolder());
+
                     }
                 }
                 catch (IOException e){

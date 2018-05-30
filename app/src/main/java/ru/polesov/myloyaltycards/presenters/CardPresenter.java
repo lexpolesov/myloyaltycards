@@ -1,7 +1,6 @@
 package ru.polesov.myloyaltycards.presenters;
 
 import java.io.File;
-import java.util.UUID;
 
 import ru.polesov.myloyaltycards.model.Card;
 
@@ -14,5 +13,7 @@ public interface CardPresenter {
     public Card getCard();
     public File getFacePhotoFile();
     public File getBackPhotoFile();
+    public void setFotoAction(int action);
+    public int getFotoAction();
 
 }

@@ -1,7 +1,5 @@
 package ru.polesov.myloyaltycards.presenters;
 
-import android.util.Log;
-
 import java.io.File;
 import java.util.UUID;
 
@@ -12,7 +10,8 @@ import ru.polesov.myloyaltycards.model.CardsItems;
 public class CardPresenterImpl implements CardPresenter {
     private CardFragment mCardFragment;
     private Card mCard;
-    private boolean newcard;
+    private boolean newcard = true;
+    private int idaction;
 
     public CardPresenterImpl (CardFragment fragment, String id){
         this.mCardFragment = fragment;
@@ -74,5 +73,13 @@ public class CardPresenterImpl implements CardPresenter {
     public File getBackPhotoFile() {
         File filesDir = mCardFragment.getActivity().getFilesDir();
         return new File(filesDir, mCard.getBackPhotoFilename());
+    }
+
+    public void setFotoAction(int action){
+        this.idaction = action;
+    }
+
+    public int getFotoAction(){
+        return this.idaction;
     }
 }

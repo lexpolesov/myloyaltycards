@@ -1,6 +1,8 @@
 package ru.polesov.myloyaltycards.fragments;
 
+import android.Manifest;
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -8,9 +10,12 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.graphics.Palette;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -25,6 +30,7 @@ import android.widget.Toast;
 import com.google.android.gms.vision.barcode.Barcode;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -50,6 +56,7 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
     private static final int REQUEST_DIALOG_BARCODE = 1;
     private static final int REQUEST_PHOTO_FACE= 2;
     private static final int REQUEST_PHOTO_BACK= 3;
+    private static final int REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS  = 124;
     private String barcodenumber;
     private boolean barcodeCheck;
     private File mFaceFile;
@@ -163,8 +170,6 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
     @Override
     public void setCode(String code) {
        mCode.setText(code);
-        Log.d("Test", "setBarcode" +  code);
-
     }
 
     @Override
@@ -174,37 +179,46 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
 
     @Override
     public void showBarcodeView() {
-        FragmentManager fm = getActivity().getSupportFragmentManager();
-        Fragment barcodefragment = new BarcodeFragmentImpl();
-        barcodefragment.setTargetFragment(CardFragmentImpl.this,REQUEST_DIALOG_BARCODE);
-        fm.beginTransaction().replace(R.id.fragment_container, barcodefragment)
-                .addToBackStack(null)
-                .commit();
+        if(ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            FragmentManager fm = getActivity().getSupportFragmentManager();
+            Fragment barcodefragment = new BarcodeFragmentImpl();
+            barcodefragment.setTargetFragment(CardFragmentImpl.this, REQUEST_DIALOG_BARCODE);
+            fm.beginTransaction().replace(R.id.fragment_container, barcodefragment)
+                    .addToBackStack(null)
+                    .commit();
+        }
+        else
+            checkPermission(-1);
+
     }
 
     @Override
     public void showFotoView(int FaceOrBack) {
-        Uri uri;
-        if (FaceOrBack == 0)
-            uri = FileProvider.getUriForFile(getActivity(),
-                    "ru.polesov.myloyaltycards.fileprovider",
-                    mFaceFile);
-        else
-            uri = FileProvider.getUriForFile(getActivity(),
-                    "ru.polesov.myloyaltycards.fileprovider",
-                    mBackFile);
-        captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
-        List<ResolveInfo> cameraActivities = getActivity()
-                .getPackageManager().queryIntentActivities(captureImage,
-                        PackageManager.MATCH_DEFAULT_ONLY);
-        for (ResolveInfo activity : cameraActivities) {
-            getActivity().grantUriPermission(activity.activityInfo.packageName,
-                    uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        if(ContextCompat.checkSelfPermission(getContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            Uri uri;
+            if (FaceOrBack == 0)
+                uri = FileProvider.getUriForFile(getActivity(),
+                        "ru.polesov.myloyaltycards.fileprovider",
+                        mFaceFile);
+            else
+                uri = FileProvider.getUriForFile(getActivity(),
+                        "ru.polesov.myloyaltycards.fileprovider",
+                        mBackFile);
+            captureImage.putExtra(MediaStore.EXTRA_OUTPUT, uri);
+            List<ResolveInfo> cameraActivities = getActivity()
+                    .getPackageManager().queryIntentActivities(captureImage,
+                            PackageManager.MATCH_DEFAULT_ONLY);
+            for (ResolveInfo activity : cameraActivities) {
+                getActivity().grantUriPermission(activity.activityInfo.packageName,
+                        uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            }
+            if (FaceOrBack == 0)
+                startActivityForResult(captureImage, REQUEST_PHOTO_FACE);
+            else
+                startActivityForResult(captureImage, REQUEST_PHOTO_BACK);
         }
-        if (FaceOrBack == 0)
-            startActivityForResult(captureImage, REQUEST_PHOTO_FACE);
         else
-            startActivityForResult(captureImage, REQUEST_PHOTO_BACK);
+            checkPermission(FaceOrBack);
     }
 
     @Override
@@ -239,6 +253,7 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
                 updatePhotoView();
                 break;
             case REQUEST_PHOTO_BACK:
+
                 Uri uri1 = FileProvider.getUriForFile(getActivity(),
                         "ru.polesov.myloyaltycards.fileprovider",
                         mBackFile);
@@ -262,6 +277,82 @@ public class CardFragmentImpl extends Fragment implements CardFragment, View.OnC
             Bitmap bitmap = ImageUtils.getScaledBitmap(
                     mBackFile.getPath(), getActivity());
             mImageViewBack.setImageBitmap(bitmap);
+        }
+    }
+
+    private void checkPermission(final int action) {
+        List<String> permissionsNeeded = new ArrayList<String>();
+        mCardPresenter.setFotoAction(action);
+        final List<String> permissionsList = new ArrayList<String>();
+        if (!addPermission(permissionsList, Manifest.permission.CAMERA))
+            permissionsNeeded.add(getResources().getString(R.string.permission_camera));
+        if (permissionsList.size() > 0) {
+            if (permissionsNeeded.size() > 0) {
+                String message = getResources().getString(R.string.permission_need) + " " + permissionsNeeded.get(0);
+                for (int i = 1; i < permissionsNeeded.size(); i++)
+                    message = message + ", " + permissionsNeeded.get(i);
+                showMessageOKCancel(message,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                requestPermissions(permissionsList.toArray(new String[permissionsList.size()]),
+                                        REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS);
+                            }
+                        });
+                return;
+            }
+            else{
+                Toast.makeText(getActivity(), getResources().getString(R.string.toast_error_camera), Toast.LENGTH_SHORT)
+                        .show();
+            }
+        }
+    }
+    private boolean addPermission(List<String> permissionsList, String permission) {
+        if (ContextCompat.checkSelfPermission(getActivity(), permission) != PackageManager.PERMISSION_GRANTED) {
+            permissionsList.add(permission);
+            if (!ActivityCompat.shouldShowRequestPermissionRationale(getActivity(),permission))
+                return false;
+        }
+        return true;
+    }
+
+    private void showMessageOKCancel(String message, DialogInterface.OnClickListener okListener) {
+        new AlertDialog.Builder(getActivity())
+                .setMessage(message)
+                .setPositiveButton("OK", okListener)
+                .setNegativeButton("Cancel", null)
+                .create()
+                .show();
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults ) {
+        boolean isCamera = ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+        switch (requestCode) {
+            case REQUEST_CODE_ASK_MULTIPLE_PERMISSIONS:
+            {
+                if(isCamera){
+                int action = mCardPresenter.getFotoAction();
+                    switch (action) {
+                        case -1:
+                            showBarcodeView();
+                            break;
+                        case 0:
+                            showFotoView(0);
+                            break;
+                        case 1:
+                            showFotoView(1);
+                            break;
+                    }
+                } else {
+                    Toast.makeText(getActivity(), getResources().getString(R.string.toast_error_camera), Toast.LENGTH_SHORT)
+                            .show();
+                }
+            }
+            break;
+            default:
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
 }

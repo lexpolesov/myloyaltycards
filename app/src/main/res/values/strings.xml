@@ -20,5 +20,8 @@
     <string name="error_detector_barcode">Ошибка. Сканер не доступен.</string>
     <string name="barcode_fragment_focus">Дождитесь автоматической фокусировки</string>
     <string name="buttonpreview">Детальная информация</string>
+    <string name="permission_camera">Камера</string>
+    <string name="permission_need">Требуется добавить разрешение</string>
+    <string name="toast_error_camera">Нет разрешения для работы с камерой</string>
     <string name="textview_pr" />
 </resources>
